@@ -763,30 +763,52 @@ netlifyIdentity.on('logout', () => {
   document.getElementById('appMain').style.display      = 'none';
 });
 
+// ── NETLIFY IDENTITY — INICIALIZACIÓN COMPLETA ────────────────
+
+// Ocultar login screen hasta que sepamos si hay token o sesión activa
+document.getElementById('loginScreen').style.display = 'none';
+
 netlifyIdentity.init({
   APIUrl: 'https://regal-crepe-e723dc.netlify.app/.netlify/identity'
 });
 
-// ── MANEJAR TOKEN DE INVITACIÓN EN LA URL ─────────────────────
-// Cuando Netlify redirige con #invite_token= o #confirmation_token=
-// hay que abrir el widget automáticamente para completar el registro
-(function handleTokens() {
-  const hash = window.location.hash;
-  if (hash && (
-    hash.includes('invite_token=') ||
-    hash.includes('confirmation_token=') ||
-    hash.includes('recovery_token=') ||
-    hash.includes('access_token=')
-  )) {
-    // Esperar a que el widget esté listo y abrirlo
-    const waitAndOpen = setInterval(() => {
-      if (typeof netlifyIdentity !== 'undefined') {
-        clearInterval(waitAndOpen);
-        setTimeout(() => netlifyIdentity.open(), 500);
-      }
-    }, 200);
+// Si hay token en la URL (invitación, recuperación, confirmación)
+const hash = window.location.hash;
+const hasToken = hash && (
+  hash.includes('invite_token=') ||
+  hash.includes('confirmation_token=') ||
+  hash.includes('recovery_token=') ||
+  hash.includes('access_token=')
+);
+
+if (hasToken) {
+  // Abrir widget para que procese el token
+  setTimeout(() => netlifyIdentity.open(), 800);
+} else {
+  // Sin token: mostrar login screen normal
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+netlifyIdentity.on('init', user => {
+  if (user) {
+    showApp(user);
+  } else if (!hasToken) {
+    document.getElementById('loginScreen').style.display = 'flex';
   }
-})();
+});
+
+netlifyIdentity.on('login', user => {
+  netlifyIdentity.close();
+  history.replaceState(null, '', window.location.pathname);
+  showApp(user);
+});
+
+netlifyIdentity.on('logout', () => {
+  document.getElementById('loginScreen').style.display  = 'flex';
+  document.getElementById('loginScreen').classList.remove('out');
+  document.getElementById('appHeader').style.display    = 'none';
+  document.getElementById('appMain').style.display      = 'none';
+});
 
 // ── INIT ───────────────────────────────────────────────
 function initApp() {
