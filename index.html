@@ -1,5 +1,11 @@
 <!DOCTYPE html>
-<!-- NOTA: Este site requiere Netlify con Identity habilitado e "Invite only" activado -->
+<!-- Forzar z-index del modal de Netlify Identity por encima del login -->
+<style>
+  [data-netlify-identity-menu],
+  .netlify-identity-button,
+  #netlify-identity-widget,
+  .netlify-identity-widget { z-index: 99999 !important; }
+</style>
 
 <html lang="es">
 <head>
@@ -41,7 +47,7 @@ body{
 
 /* ── LOGIN ─────────────────────────────────── */
 .login-screen{
-  position:fixed; inset:0; z-index:300;
+  position:fixed; inset:0; z-index:100;
   background:var(--black);
   display:flex; flex-direction:column;
   align-items:center; justify-content:center;
@@ -699,17 +705,31 @@ function openNetlifyLogin() {
   const btn = document.getElementById('netlifyLoginBtn');
   btn.textContent = 'Abriendo…';
   btn.style.opacity = '0.7';
-  try {
-    netlifyIdentity.open('login');
-  } catch(e) {
-    btn.textContent = 'Acceder con tu cuenta →';
-    btn.style.opacity = '1';
-    console.error('Netlify Identity error:', e);
-  }
+
+  // Esperar a que el widget esté listo e intentar abrir
+  let attempts = 0;
+  const tryOpen = setInterval(() => {
+    attempts++;
+    try {
+      if (typeof netlifyIdentity !== 'undefined') {
+        netlifyIdentity.open('login');
+        clearInterval(tryOpen);
+      }
+    } catch(e) {
+      console.warn('Reintentando…', e);
+    }
+    if (attempts > 10) {
+      clearInterval(tryOpen);
+      btn.textContent = 'Acceder con tu cuenta →';
+      btn.style.opacity = '1';
+      alert('Error al cargar el sistema de login. Recarga la página e inténtalo de nuevo.');
+    }
+  }, 300);
+
   setTimeout(() => {
     btn.textContent = 'Acceder con tu cuenta →';
     btn.style.opacity = '1';
-  }, 3000);
+  }, 4000);
 }
 
 function showApp(user) {
