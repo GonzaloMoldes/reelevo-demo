@@ -763,51 +763,51 @@ netlifyIdentity.on('logout', () => {
   document.getElementById('appMain').style.display      = 'none';
 });
 
-// ── NETLIFY IDENTITY — INICIALIZACIÓN COMPLETA ────────────────
-
-// Ocultar login screen hasta que sepamos si hay token o sesión activa
-document.getElementById('loginScreen').style.display = 'none';
+// ── NETLIFY IDENTITY ──────────────────────────────────────────
 
 netlifyIdentity.init({
   APIUrl: 'https://regal-crepe-e723dc.netlify.app/.netlify/identity'
 });
 
-// Si hay token en la URL (invitación, recuperación, confirmación)
-const hash = window.location.hash;
-const hasToken = hash && (
-  hash.includes('invite_token=') ||
-  hash.includes('confirmation_token=') ||
-  hash.includes('recovery_token=') ||
-  hash.includes('access_token=')
-);
+// Mostrar login screen por defecto
+document.getElementById('loginScreen').style.display = 'flex';
 
-if (hasToken) {
-  // Abrir widget para que procese el token
-  setTimeout(() => netlifyIdentity.open(), 800);
-} else {
-  // Sin token: mostrar login screen normal
-  document.getElementById('loginScreen').style.display = 'flex';
-}
-
-netlifyIdentity.on('init', user => {
-  if (user) {
-    showApp(user);
-  } else if (!hasToken) {
+// Si hay token en el hash (invitación/recuperación) abrir widget inmediatamente
+window.addEventListener('load', function() {
+  const hash = window.location.hash;
+  const hasRealToken = hash && (
+    hash.includes('invite_token=') ||
+    hash.includes('confirmation_token=') ||
+    hash.includes('recovery_token=') ||
+    hash.includes('access_token=')
+  );
+  if (hasRealToken) {
+    document.getElementById('loginScreen').style.display = 'none';
+    netlifyIdentity.open();
+  } else {
+    // Limpiar hash vacío de la URL sin recargar
+    if (hash === '#' || hash === '') {
+      history.replaceState(null, '', window.location.pathname);
+    }
     document.getElementById('loginScreen').style.display = 'flex';
   }
 });
 
-netlifyIdentity.on('login', user => {
+netlifyIdentity.on('init', function(user) {
+  if (user) { showApp(user); }
+});
+
+netlifyIdentity.on('login', function(user) {
   netlifyIdentity.close();
   history.replaceState(null, '', window.location.pathname);
   showApp(user);
 });
 
-netlifyIdentity.on('logout', () => {
-  document.getElementById('loginScreen').style.display  = 'flex';
+netlifyIdentity.on('logout', function() {
+  document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('loginScreen').classList.remove('out');
-  document.getElementById('appHeader').style.display    = 'none';
-  document.getElementById('appMain').style.display      = 'none';
+  document.getElementById('appHeader').style.display   = 'none';
+  document.getElementById('appMain').style.display     = 'none';
 });
 
 // ── INIT ───────────────────────────────────────────────
